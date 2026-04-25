@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StatPill } from '../../components/StatPill';
 import type { ProblemResult, TourSettings } from '../../types';
 
@@ -8,6 +9,7 @@ type TourResultPageProps = {
   remainingSeconds: number;
   onRestart: () => void;
   onHome: () => void;
+  onDeleteRecord: () => void;
 };
 
 function formatTime(totalSeconds: number) {
@@ -23,7 +25,9 @@ export function TourResultPage({
   remainingSeconds,
   onRestart,
   onHome,
+  onDeleteRecord,
 }: TourResultPageProps) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const completed = results.filter((result) => result.status === 'completed').length;
   const failed = results.filter((result) => result.status === 'failed').length;
   const unrecorded = results.filter((result) => result.status === null).length;
@@ -75,6 +79,13 @@ export function TourResultPage({
       </section>
 
       <div className="result-actions">
+        <button
+          className="danger-action"
+          type="button"
+          onClick={() => setIsDeleteDialogOpen(true)}
+        >
+          記録を削除
+        </button>
         <button className="secondary-action" type="button" onClick={onHome}>
           トップへ
         </button>
@@ -82,6 +93,35 @@ export function TourResultPage({
           新しいツアー
         </button>
       </div>
+
+      {isDeleteDialogOpen && (
+        <div className="dialog-backdrop" role="presentation">
+          <section
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-result-title"
+          >
+            <h2 id="delete-result-title">記録を削除しますか？</h2>
+            <p>
+              このツアー結果を履歴から削除します。
+              この操作は元に戻せません。
+            </p>
+            <div className="dialog-actions">
+              <button
+                className="secondary-action"
+                type="button"
+                onClick={() => setIsDeleteDialogOpen(false)}
+              >
+                キャンセル
+              </button>
+              <button className="danger-action" type="button" onClick={onDeleteRecord}>
+                削除する
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

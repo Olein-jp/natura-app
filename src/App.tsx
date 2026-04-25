@@ -12,6 +12,7 @@ import { useState } from 'react';
 type Screen = 'home' | 'setup' | 'record' | 'result' | 'history';
 
 type TourSummary = {
+  historyId: string | null;
   results: ProblemResult[];
   elapsedSeconds: number;
   remainingSeconds: number;
@@ -40,9 +41,12 @@ export function App() {
     elapsedSeconds: number,
     remainingSeconds: number,
   ) => {
+    let historyId: string | null = null;
+
     if (settings !== null) {
+      historyId = crypto.randomUUID();
       const nextHistory: TourHistory = {
-        id: crypto.randomUUID(),
+        id: historyId,
         finishedAt: new Date().toISOString(),
         settings,
         results,
@@ -54,7 +58,7 @@ export function App() {
       saveTourHistories(nextHistories);
     }
 
-    setSummary({ results, elapsedSeconds, remainingSeconds });
+    setSummary({ historyId, results, elapsedSeconds, remainingSeconds });
     setScreen('result');
   };
 
@@ -64,10 +68,18 @@ export function App() {
     saveTourHistories(nextHistories);
   };
 
+  const deleteCurrentResult = () => {
+    if (summary?.historyId !== null && summary?.historyId !== undefined) {
+      deleteHistory(summary.historyId);
+    }
+
+    goHome();
+  };
+
   const initialResults =
     settings === null
       ? []
-      : problemsByGrade[settings.grade].map((problemNumber) => ({
+      : (settings.problemNumbers ?? problemsByGrade[settings.grade]).map((problemNumber) => ({
           problemNumber,
           tries: 1,
           status: null,
@@ -102,6 +114,7 @@ export function App() {
           remainingSeconds={summary.remainingSeconds}
           onRestart={() => setScreen('setup')}
           onHome={goHome}
+          onDeleteRecord={deleteCurrentResult}
         />
       )}
     </>

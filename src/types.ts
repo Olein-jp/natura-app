@@ -7,10 +7,14 @@ export type Grade =
 
 export type ProblemStatus = 'completed' | 'failed' | null;
 
+export type ProblemSelectionMode = 'all' | 'range' | 'random';
+
 export type TourSettings = {
   grade: Grade;
   maxTries: number;
   timeLimitMinutes: number;
+  problemSelectionMode: ProblemSelectionMode;
+  problemNumbers: number[];
 };
 
 export type ProblemResult = {
