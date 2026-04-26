@@ -37,9 +37,12 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
   const [problemSelectionMode, setProblemSelectionMode] = useState<ProblemSelectionMode>('all');
   const [rangeStart, setRangeStart] = useState('1');
   const [rangeEnd, setRangeEnd] = useState('10');
+  const [selectedProblemNumbers, setSelectedProblemNumbers] = useState<number[]>([]);
   const [randomCount, setRandomCount] = useState('10');
   const [validationError, setValidationError] = useState<string | null>(null);
   const gradeProblems = problemsByGrade[grade];
+  const selectedGradeOption =
+    gradeOptions.find((gradeOption) => gradeOption.value === grade) ?? gradeOptions[0];
   const firstProblemNumber = gradeProblems[0];
   const lastProblemNumber = gradeProblems[gradeProblems.length - 1];
   const selectedProblemPreview = useMemo(() => {
@@ -51,6 +54,12 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
       return `${rangeStart || '-'}〜${rangeEnd || '-'}番`;
     }
 
+    if (problemSelectionMode === 'specific') {
+      return selectedProblemNumbers.length === 0
+        ? '未選択'
+        : `${selectedProblemNumbers.length}課題（${selectedProblemNumbers.join(', ')}番）`;
+    }
+
     return `${randomCount || '-'}課題をランダム`;
   }, [
     firstProblemNumber,
@@ -60,6 +69,7 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
     randomCount,
     rangeEnd,
     rangeStart,
+    selectedProblemNumbers,
   ]);
 
   const handleGradeChange = (nextGrade: Grade) => {
@@ -82,6 +92,27 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
     setRandomCount((currentValue) =>
       String(clampNumber(parsePositiveInteger(currentValue) ?? 10, 1, nextProblems.length)),
     );
+    setSelectedProblemNumbers((currentNumbers) =>
+      currentNumbers.filter((problemNumber) => nextProblems.includes(problemNumber)),
+    );
+  };
+
+  const handleProblemSelectionModeChange = (nextMode: ProblemSelectionMode) => {
+    setProblemSelectionMode(nextMode);
+    setValidationError(null);
+  };
+
+  const toggleSpecificProblemNumber = (problemNumber: number) => {
+    setValidationError(null);
+    setSelectedProblemNumbers((currentNumbers) => {
+      if (currentNumbers.includes(problemNumber)) {
+        return currentNumbers.filter((currentNumber) => currentNumber !== problemNumber);
+      }
+
+      return [...currentNumbers, problemNumber].sort(
+        (firstNumber, secondNumber) => firstNumber - secondNumber,
+      );
+    });
   };
 
   const buildProblemNumbers = () => {
@@ -114,6 +145,17 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
       );
     }
 
+    if (problemSelectionMode === 'specific') {
+      if (selectedProblemNumbers.length === 0) {
+        setValidationError('取り組む課題を1つ以上選択してください。');
+        return null;
+      }
+
+      return gradeProblems.filter((problemNumber) =>
+        selectedProblemNumbers.includes(problemNumber),
+      );
+    }
+
     const count = parsePositiveInteger(randomCount);
 
     if (count === null || count > gradeProblems.length) {
@@ -127,7 +169,15 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
   };
 
   return (
-    <main className="page-shell setup-page">
+    <main
+      className="page-shell setup-page"
+      style={
+        {
+          '--selected-grade-color': selectedGradeOption.color,
+          '--selected-grade-contrast': selectedGradeOption.contrastColor,
+        } as CSSProperties
+      }
+    >
       <section className="section-heading setup-heading">
         <div>
           <p className="eyebrow">Tour setup</p>
@@ -202,7 +252,7 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
                 name="problemSelectionMode"
                 value="all"
                 checked={problemSelectionMode === 'all'}
-                onChange={() => setProblemSelectionMode('all')}
+                onChange={() => handleProblemSelectionModeChange('all')}
               />
               <span>全ての課題</span>
             </label>
@@ -212,9 +262,19 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
                 name="problemSelectionMode"
                 value="range"
                 checked={problemSelectionMode === 'range'}
-                onChange={() => setProblemSelectionMode('range')}
+                onChange={() => handleProblemSelectionModeChange('range')}
               />
               <span>指定の範囲</span>
+            </label>
+            <label className={problemSelectionMode === 'specific' ? 'selected' : ''}>
+              <input
+                type="radio"
+                name="problemSelectionMode"
+                value="specific"
+                checked={problemSelectionMode === 'specific'}
+                onChange={() => handleProblemSelectionModeChange('specific')}
+              />
+              <span>指定の課題のみ</span>
             </label>
             <label className={problemSelectionMode === 'random' ? 'selected' : ''}>
               <input
@@ -222,7 +282,7 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
                 name="problemSelectionMode"
                 value="random"
                 checked={problemSelectionMode === 'random'}
-                onChange={() => setProblemSelectionMode('random')}
+                onChange={() => handleProblemSelectionModeChange('random')}
               />
               <span>ランダム</span>
             </label>
@@ -252,6 +312,26 @@ export function TourSetupPage({ onStart, onOpenHistory, historyCount }: TourSetu
                   onChange={(event) => setRangeEnd(event.target.value)}
                 />
               </label>
+            </div>
+          )}
+
+          {problemSelectionMode === 'specific' && (
+            <div className="specific-problem-grid" aria-label="指定する課題番号">
+              {gradeProblems.map((problemNumber) => {
+                const isSelected = selectedProblemNumbers.includes(problemNumber);
+
+                return (
+                  <button
+                    key={problemNumber}
+                    className={`specific-problem-button ${isSelected ? 'selected' : ''}`}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => toggleSpecificProblemNumber(problemNumber)}
+                  >
+                    {problemNumber}
+                  </button>
+                );
+              })}
             </div>
           )}
 

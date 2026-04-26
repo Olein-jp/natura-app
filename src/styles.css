@@ -145,6 +145,11 @@ button {
   gap: 16px;
 }
 
+.setup-page {
+  --selected-grade-color: var(--accent);
+  --selected-grade-contrast: #ffffff;
+}
+
 .setup-form {
   display: grid;
   gap: 22px;
@@ -198,7 +203,7 @@ legend,
 
 .selection-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -224,6 +229,40 @@ legend,
 .selection-options input {
   position: absolute;
   opacity: 0;
+}
+
+.specific-problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.specific-problem-button {
+  display: grid;
+  aspect-ratio: 1;
+  min-width: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.specific-problem-button:hover {
+  border-color: color-mix(in srgb, var(--selected-grade-color) 56%, #ffffff);
+  background: color-mix(in srgb, var(--selected-grade-color) 14%, #ffffff);
+}
+
+.specific-problem-button.selected {
+  border-color: color-mix(in srgb, var(--selected-grade-color) 78%, #000000);
+  background: var(--selected-grade-color);
+  box-shadow: inset 0 0 0 2px #ffffff;
+  color: var(--selected-grade-contrast);
 }
 
 .number-fields {

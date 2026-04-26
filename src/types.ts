@@ -7,7 +7,7 @@ export type Grade =
 
 export type ProblemStatus = 'completed' | 'failed' | null;
 
-export type ProblemSelectionMode = 'all' | 'range' | 'random';
+export type ProblemSelectionMode = 'all' | 'range' | 'specific' | 'random';
 
 export type TourSettings = {
   grade: Grade;
