@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { StatPill } from '../../components/StatPill';
 import type { ProblemResult, TourSettings } from '../../types';
 import { getGradeOption } from './problemData';
@@ -19,19 +19,47 @@ function formatTime(totalSeconds: number) {
 export function TourRecordPage({ settings, initialResults, onFinish }: TourRecordPageProps) {
   const gradeOption = getGradeOption(settings.grade);
   const totalSeconds = settings.timeLimitMinutes * 60;
+  const tourStartedAtMs = useRef(Date.now());
   const [results, setResults] = useState<ProblemResult[]>(initialResults);
   const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [unrecordedNumbers, setUnrecordedNumbers] = useState<number[]>([]);
 
-  useEffect(() => {
-    const timerId = window.setInterval(() => {
-      setElapsedSeconds((current) => current + 1);
-      setRemainingSeconds((current) => Math.max(0, current - 1));
-    }, 1000);
+  const getCurrentTourTime = () => {
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((Date.now() - tourStartedAtMs.current) / 1000),
+    );
 
-    return () => window.clearInterval(timerId);
-  }, []);
+    return {
+      elapsedSeconds,
+      remainingSeconds: Math.max(0, totalSeconds - elapsedSeconds),
+    };
+  };
+
+  const syncTourTime = () => {
+    const nextTourTime = getCurrentTourTime();
+    setElapsedSeconds(nextTourTime.elapsedSeconds);
+    setRemainingSeconds(nextTourTime.remainingSeconds);
+
+    return nextTourTime;
+  };
+
+  useEffect(() => {
+    const timerId = window.setInterval(syncTourTime, 1000);
+    window.addEventListener('focus', syncTourTime);
+    window.addEventListener('pageshow', syncTourTime);
+    document.addEventListener('visibilitychange', syncTourTime);
+
+    syncTourTime();
+
+    return () => {
+      window.clearInterval(timerId);
+      window.removeEventListener('focus', syncTourTime);
+      window.removeEventListener('pageshow', syncTourTime);
+      document.removeEventListener('visibilitychange', syncTourTime);
+    };
+  }, [totalSeconds]);
 
   const stats = useMemo(() => {
     const completedResults = results.filter((result) => result.status === 'completed');
@@ -53,6 +81,7 @@ export function TourRecordPage({ settings, initialResults, onFinish }: TourRecor
   };
 
   const handleFinish = () => {
+    const currentTourTime = syncTourTime();
     const unrecordedNumbers = results
       .filter((result) => result.status === null)
       .map((result) => result.problemNumber);
@@ -62,12 +91,13 @@ export function TourRecordPage({ settings, initialResults, onFinish }: TourRecor
       return;
     }
 
-    onFinish(results, elapsedSeconds, remainingSeconds);
+    onFinish(results, currentTourTime.elapsedSeconds, currentTourTime.remainingSeconds);
   };
 
   const forceFinish = () => {
+    const currentTourTime = syncTourTime();
     setUnrecordedNumbers([]);
-    onFinish(results, elapsedSeconds, remainingSeconds);
+    onFinish(results, currentTourTime.elapsedSeconds, currentTourTime.remainingSeconds);
   };
 
   return (
